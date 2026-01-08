@@ -34,11 +34,11 @@ class UR5eRobot:
 
         # 2. Determine URDF Path
         if urdf_path is None:
-            workspace_dir = Path(__file__).parent
+            workspace_dir = Path(__file__).parent.resolve()
             if with_gripper:
                 self.urdf_path = workspace_dir / "ur5e_robotiq.urdf"
             else:
-                self.urdf_path = workspace_dir.parent / "ur5e" / "ur5e_fixed.urdf"
+                self.urdf_path = workspace_dir / "assets" / "ur5e" / "ur5e.urdf"
         else:
             self.urdf_path = Path(urdf_path)
             

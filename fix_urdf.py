@@ -4,6 +4,7 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import sys
+import os
 
 def fix_urdf_mesh_paths(urdf_path, mesh_dir, output_path=None):
     """Replace package:// paths with local paths in URDF."""
@@ -25,20 +26,22 @@ def fix_urdf_mesh_paths(urdf_path, mesh_dir, output_path=None):
             # -> visual/base.dae
             parts = filename.split('/')
             try:
-                idx = parts.index('ur5e')
-                relative_path = '/'.join(parts[idx+1:])
-                new_path = str(mesh_dir / relative_path)
-
-                # Check if file exists
-                if not Path(new_path).exists():
-                    print(f"Warning: Mesh file not found: {new_path}")
-                    # Try alternative: just filename
-                    filename_only = parts[-1]
-                    alt_path = str(mesh_dir / filename_only)
-                    if Path(alt_path).exists():
-                        new_path = alt_path
-                        print(f"  Using alternative path: {alt_path}")
-
+                if 'ur5e' in parts:
+                    idx = parts.index('ur5e')
+                    relative_path = '/'.join(parts[idx+1:])
+                else:
+                    # Fallback to last 2 parts if structure matches visual/xxx.dae
+                    relative_path = '/'.join(parts[-2:])
+                
+                # Check if we should make it absolute or relative to URDF
+                # Here we assume we want relative to URDF if mesh_dir is relative to URDF
+                # But typically this script fixed it to absolute or relative.
+                # Let's make it relative to the mesh_dir provided.
+                
+                # If we want the path in URDF to be "visual/base.dae", we just set it.
+                # But this script seems designed to find the file.
+                
+                new_path = relative_path
                 elem.set('filename', new_path)
                 print(f"Fixed: {filename} -> {new_path}")
             except ValueError:
@@ -53,43 +56,21 @@ def fix_urdf_mesh_paths(urdf_path, mesh_dir, output_path=None):
     return output_path
 
 def main():
-    urdf_path = Path('/home/themountaintree/workspace/ur5e/ur5e.urdf')
-    mesh_dir = Path('/home/themountaintree/workspace/ur5e/ur5e')
+    script_dir = Path(__file__).parent.resolve()
+    urdf_path = script_dir / 'assets/ur5e/ur5e.urdf'
+    mesh_dir = script_dir / 'assets/ur5e'
 
     if not urdf_path.exists():
         print(f"URDF not found: {urdf_path}")
-        sys.exit(1)
-
-    if not mesh_dir.exists():
-        print(f"Mesh directory not found: {mesh_dir}")
-        sys.exit(1)
+        # Try to find it in case it hasn't been moved yet
+        return
 
     print(f"Fixing URDF: {urdf_path}")
-    print(f"Mesh directory: {mesh_dir}")
-
-    fixed_path = fix_urdf_mesh_paths(urdf_path, mesh_dir)
-
-    # Also check for collision meshes in collision/ directory
-    collision_dir = mesh_dir / 'collision'
-    if collision_dir.exists():
-        print(f"\nCollision directory found: {collision_dir}")
-        # Update collision mesh paths
-        tree = ET.parse(fixed_path)
-        root = tree.getroot()
-
-        collision_meshes = root.findall('.//collision//mesh')
-        for elem in collision_meshes:
-            filename = elem.get('filename')
-            if filename and filename.endswith('.stl'):
-                # Find the .stl file
-                stl_name = Path(filename).name
-                stl_path = collision_dir / stl_name
-                if stl_path.exists():
-                    elem.set('filename', str(stl_path))
-                    print(f"Fixed collision mesh: {stl_name}")
-
-        tree.write(fixed_path, encoding='utf-8', xml_declaration=True)
-        print(f"Updated collision meshes in: {fixed_path}")
+    
+    # We update in place or create a new one. 
+    # The previous fix_urdf created _fixed.urdf. 
+    # Let's just update the file itself or create a fixed one.
+    fix_urdf_mesh_paths(urdf_path, mesh_dir, output_path=urdf_path)
 
 if __name__ == '__main__':
     main()

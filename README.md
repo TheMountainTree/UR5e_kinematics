@@ -34,10 +34,7 @@ ur5e_kinematics/
     ```
 
 2.  **Prepare URDFs**:
-    Ensure `../ur5e/ur5e_fixed.urdf` exists. If not, run:
-    ```bash
-    python fix_urdf.py
-    ```
+    The project is self-contained with assets in `assets/`.
     
     Ensure `ur5e_robotiq.urdf` exists. If not, run:
     ```bash
